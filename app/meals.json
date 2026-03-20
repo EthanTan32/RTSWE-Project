@@ -1,0 +1,42 @@
+[
+   {
+     "id": 1,
+     "name": "Honey Garlic Tofu",
+     "hall": "Livingston",
+     "calories": 320,
+     "macros": { "protein": 15, "carbs": 42, "fat": 11 },
+     "dietary": ["Vegan", "Gluten-Free"]
+   },
+   {
+     "id": 2,
+     "name": "Grilled Chicken Breast",
+     "hall": "Busch",
+     "calories": 165,
+     "macros": { "protein": 31, "carbs": 0, "fat": 4 },
+     "dietary": ["Halal", "Keto"]
+   },
+   {
+     "id": 3,
+     "name": "Three-Cheese Ravioli",
+     "hall": "Neilson",
+     "calories": 410,
+     "macros": { "protein": 18, "carbs": 55, "fat": 14 },
+     "dietary": ["Vegetarian"]
+   },
+   {
+     "id": 4,
+     "name": "Beef Stir-Fry",
+     "hall": "The Yard (Truck)",
+     "calories": 450,
+     "macros": { "protein": 28, "carbs": 35, "fat": 22 },
+     "dietary": []
+   },
+   {
+     "id": 5,
+     "name": "Quinoa & Black Bean Salad",
+     "hall": "Livingston",
+     "calories": 280,
+     "macros": { "protein": 12, "carbs": 45, "fat": 6 },
+     "dietary": ["Vegan", "Gluten-Free"]
+   }
+ ]
