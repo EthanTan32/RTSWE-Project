@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from 'react';
-import mealsData from './meals.json';
+//import mealsData from './meals.json';
 
 
 
@@ -9,21 +9,20 @@ import mealsData from './meals.json';
 
 function App() {
  const [searchTerm, setSearchTerm] = useState("");
- /*
-  const [mealsData, setMealsData] = useState("");
+ const [mealsData, setMealsData] = useState([]);
 
   useEffect(() => {
-    async function format() {
+    async function fetchMeals() {
       const res = await fetch("/api/format");
-      const data = await res.json()
-      setMealsData(data)
+      const data = await res.json();
+      setMealsData(data);
     }
+    fetchMeals();
+  }, []);
 
-  })
-*/
 
  // filters the list as they type
- const filteredMeals = mealsData.filter(meal => {
+ const filteredMeals = mealsData && mealsData.length > 0 ? mealsData.filter(meal => {
   const search = searchTerm.toLowerCase();
   
   //Check name or hall
@@ -41,7 +40,7 @@ function App() {
   );
 
   return matchesName || matchesHall || matchesMacros || matchesDietary;
-});
+}) : [];
 
  return (
    <div className="container-fluid bg-light min-vh-100 p-3">

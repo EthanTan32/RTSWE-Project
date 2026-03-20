@@ -14,9 +14,9 @@ function produceJson() {
             const nutrition = item["rounded_nutrition_info"]
             const diet_data = item["icons"] ? item["icons"]["food_icons"] : null;
 
-            console.log(diet_data)
+            
 
-            const diet_info: string[] = []
+            const diet_info = []
 
         if (diet_data !== null) {
         for (const icon of diet_data) {
