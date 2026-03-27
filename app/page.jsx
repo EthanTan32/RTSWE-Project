@@ -6,6 +6,7 @@ import React, { useState, useEffect } from 'react';
 function App() {
  const [searchTerm, setSearchTerm] = useState("");
  const [mealsData, setMealsData] = useState([]);
+ const [isLoading, setIsLoading] = useState(true);
 
  //Progress Tracker State
  const [plate, setPlate] = useState([]); 
@@ -34,6 +35,7 @@ function App() {
       setMealsData(data);
     }
     fetchMeals();
+    setIsLoading(false);
   }, []);
 
  //filters the list as they type
@@ -159,36 +161,51 @@ function App() {
 
      {/* Results Section */}
      <div className="row g-3">
-       {filteredMeals.map(meal => (
-         <div className="col-12 col-md-4" key={meal.id}>
-           <div className="card h-100 border-0 shadow-sm">
-             <div className="card-body">
-               <div className="d-flex justify-content-between">
-                 <h5 className="card-title fw-bold">{meal.name}</h5>
-                 <span className="badge bg-info text-dark">{meal.calories} Cal</span>
-               </div>
-               <h6 className="card-subtitle mb-3 text-secondary">{meal.hall}</h6>
-              
-               {/* Dietary Tags */}
-               <div>
-                 {meal.dietary && meal.dietary.map(tag => (
-                   <span key={tag} className="badge rounded-pill bg-success me-1">{tag}</span>
-                 ))}
-               </div>
-             </div>
-             
-             <div className="card-footer bg-white border-0 d-flex justify-content-end gap-2 pb-3">
-               <button className="btn btn-outline-danger btn-sm">View Macros</button>
-               <button 
-                 className="btn btn-danger btn-sm"
-                 onClick={() => setPlate([...plate, meal])}
-               >
-                 + Add
-               </button>
-             </div>
+       {isLoading ? (
+         <div className="col-12">
+           <div className="text-center p-5">
+             <div className="spinner-border text-danger" role="status"></div>
+             <p className="mt-3 text-muted">Fetching meals...</p>
            </div>
          </div>
-       ))}
+       ) : (
+         filteredMeals.map(meal => (
+           <div className="col-12 col-md-4" key={meal.id}>
+             <div className="card h-100 border-0 shadow-sm">
+               <div className="card-body">
+                 <div className="d-flex justify-content-between align-items-center">
+                   <h5 className="card-title fw-bold">{meal.name}</h5>
+                   <div className="badge bg-info d-inline-flex align-items-center justify-content-center" style={{ minWidth: '80px', width: '80px', height: '28px' }}>
+                     {meal.calories} Cal
+                   </div>
+                 </div>
+                 <h6 className="card-subtitle mb-3 text-secondary">{meal.hall}</h6>
+                
+                 {/* Dietary Tags */}
+                 <div>
+                   {meal.dietary && meal.dietary.map(tag => (
+                     <span key={tag} className="badge rounded-pill bg-success me-1">{tag}</span>
+                   ))}
+                 </div>
+               </div>
+                <div className="card-footer bg-white border-0 d-flex justify-content-between align-items-center gap-2 pb-3">
+                  <h6 className="card-subtitle mb-0 text-secondary small">
+                    {meal.macros
+                      ? `Protein: ${meal.macros.protein}g | Carbs: ${meal.macros.carbs}g | Fats: ${meal.macros.fat}g`
+                      : "Macros unavailable"}
+                  </h6>
+
+                  <button
+                    className="btn btn-danger btn-sm"
+                    onClick={() => setPlate([...plate, meal])}
+                  >
+                    + Add
+                  </button>
+                </div>
+             </div>
+           </div>
+         ))
+       )}
      </div>
    </div>
  );
