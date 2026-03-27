@@ -13,7 +13,7 @@ function App() {
 
   useEffect(() => {
     async function fetchMeals() {
-      const res = await fetch("/api/format");
+      const res = await fetch("/api/format", { method: "POST"});
       const data = await res.json();
       setMealsData(data);
     }
