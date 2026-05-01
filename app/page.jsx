@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/utils/supabase/client'
 
 function App() {
@@ -19,16 +19,10 @@ function App() {
   const [carbsGoal, setCarbsGoal] = useState(200);
   const [fatGoal, setFatGoal] = useState(60);
 
-  // Favorites State (Loads from localStorage if available) ---
-  const [savedPlates, setSavedPlates] = useState(() => {
-    // Check if we are in the browser and if there is saved data
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('scarletPlateFavorites');
-      return saved ? JSON.parse(saved) : [];
-    }
-    return [];
-  });
+  // Favorites State (Loads from database if available)
+  const [savedPlates, setSavedPlates] = useState([]);
   const [favoriteName, setFavoriteName] = useState("");
+  const hasLoadedData = useRef(false);
 
   // Calories math
   const currentCalories = plate.reduce((total, meal) => total + (meal.calories || 0), 0);
@@ -110,10 +104,63 @@ function App() {
     fetchMeals();
   }, []);
 
-  // Save favorites to Local Storage whenever they change ---
+  // Check auth status
   useEffect(() => {
-    localStorage.setItem('scarletPlateFavorites', JSON.stringify(savedPlates));
-  }, [savedPlates]);
+    async function checkUser() {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    }
+    checkUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [supabase.auth]);
+
+  // Load saved tracker data when user changes
+  useEffect(() => {
+    async function loadSavedTracker() {
+      if (!user) return;
+      const res = await fetch('/api/plate');
+      if (!res.ok) return;
+      const data = await res.json();
+      setPlate(data.plate ?? []);
+      setCalorieGoal(data.calorieGoal ?? 1800);
+      setProteinGoal(data.proteinGoal ?? 130);
+      setCarbsGoal(data.carbsGoal ?? 200);
+      setFatGoal(data.fatGoal ?? 60);
+      setSavedPlates(data.savedPlates ?? []);
+      hasLoadedData.current = true;
+    }
+    if (!user) {
+      hasLoadedData.current = false;
+      return;
+    }
+    hasLoadedData.current = false;
+    loadSavedTracker();
+  }, [user]);
+
+  // Save favorites to database whenever they change
+  useEffect(() => {
+    async function saveTracker() {
+      if (!user || !hasLoadedData.current) return;
+      await fetch('/api/plate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          plate,
+          calorieGoal,
+          proteinGoal,
+          carbsGoal,
+          fatGoal,
+          savedPlates
+        })
+      });
+    }
+    saveTracker();
+  }, [plate, calorieGoal, proteinGoal, carbsGoal, fatGoal, savedPlates, user]);
 
   // Handlers for Favorites 
   const handleSaveFavorite = () => {

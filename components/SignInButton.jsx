@@ -46,6 +46,7 @@ export default function SignInButton() {
     if (error) {
       console.error('Error signing out:', error.message)
     }
+    window.location.reload();
   }
 
   if (user) {
