@@ -40,6 +40,62 @@ function App() {
   const carbsProgress = Math.min((totalCarbs / carbsGoal) * 100, 100) || 0;
   const fatProgress = Math.min((totalFat / fatGoal) * 100, 100) || 0;
 
+  // Smart Recommendation Engine
+  
+  // 1. Calculate what the user still needs
+  const remainingCalories = calorieGoal - currentCalories;
+  const remainingProtein = proteinGoal - totalProtein;
+  const remainingCarbs = carbsGoal - totalCarbs;
+
+  // 2. The Scoring Function
+  const getRecommendations = () => {
+    // If the data hasn't loaded, or the plate is already full, don't show anything
+    if (!mealsData || mealsData.length === 0 || remainingCalories < 100) return [];
+
+    // Get IDs of items already on the plate so we don't recommend duplicates
+    const plateIds = plate.map(item => item.id);
+    const availableMeals = mealsData.filter(m => !plateIds.includes(m.id));
+
+    // Grade every meal
+    const scoredMeals = availableMeals.map(meal => {
+      let score = 0;
+
+      // Rule 1: Calorie Budget (Heavy Weight)
+      if (meal.calories <= remainingCalories) {
+        score += 15; // Fits perfectly
+      } else if (meal.calories <= remainingCalories + 100) {
+        score -= 5; // Slightly over budget
+      } else {
+        score -= 50; // Massively over budget, penalize heavily
+      }
+
+      // Rule 2: Protein Priority
+      // If they are missing a lot of protein, highly reward high-protein meals
+      if (remainingProtein > 20 && meal.macros?.protein > 15) {
+        score += 10; 
+      }
+
+      // Rule 3: Carb Balancing
+      // If they need carbs, reward carbs. If they are over, penalize high carbs.
+      if (remainingCarbs > 30 && meal.macros?.carbs > 20) {
+        score += 5;
+      } else if (remainingCarbs < 0 && meal.macros?.carbs > 30) {
+        score -= 10; 
+      }
+
+      return { ...meal, recommendationScore: score };
+    });
+
+    // Sort by the highest score, and grab the top 3 meals
+    const topPicks = scoredMeals
+      .sort((a, b) => b.recommendationScore - a.recommendationScore)
+      .slice(0, 3);
+
+    return topPicks;
+  };
+
+  const recommendedMeals = getRecommendations();
+
   useEffect(() => {
     async function fetchMeals() {
       try {
@@ -293,6 +349,47 @@ function App() {
 
         </div>
       </div>
+
+      {/* --- NEW: Smart Recommendations UI --- */}
+      {recommendedMeals.length > 0 && currentCalories > 0 && (
+        <div className="row mb-5">
+          <div className="col-12">
+            <div className="d-flex align-items-center mb-3">
+              <span className="badge bg-warning text-dark me-2 p-2">✨ Smart Suggestions</span>
+              <h5 className="mb-0 fw-bold text-muted">Based on your remaining goals</h5>
+            </div>
+            
+            <div className="row g-3">
+              {recommendedMeals.map(meal => (
+                <div className="col-12 col-md-4" key={`rec-${meal.id}`}>
+                  <div className="card h-100 border-warning shadow-sm" style={{ borderWidth: '2px' }}>
+                    <div className="card-body bg-light">
+                      <div className="d-flex justify-content-between">
+                        <h5 className="card-title fw-bold">{meal.name}</h5>
+                        <span className="badge bg-warning text-dark">{meal.calories} Cal</span>
+                      </div>
+                      <h6 className="card-subtitle mb-2 text-secondary">{meal.hall}</h6>
+                      <p className="small text-muted mb-0">
+                        Protein: {meal.macros?.protein}g • Carbs: {meal.macros?.carbs}g
+                      </p>
+                    </div>
+                    
+                    <div className="card-footer bg-white border-0 d-flex justify-content-end pb-3">
+                      <button 
+                        className="btn btn-warning btn-sm fw-bold"
+                        onClick={() => setPlate([...plate, meal])}
+                      >
+                        + Add to Plate
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ======================================== */}
 
       {/* Results Section */}
       <div className="row g-3">
