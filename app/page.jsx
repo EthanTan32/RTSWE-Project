@@ -8,8 +8,8 @@ function App() {
  const [searchTerm, setSearchTerm] = useState("");
  const [mealsData, setMealsData] = useState([]);
  const [isLoading, setIsLoading] = useState(true);
- const [user, setUser] = useState(null)
- const supabase = createClient()
+ const [user, setUser] = useState(null);
+ const supabase = createClient();
 
  //Progress Tracker State
  const [plate, setPlate] = useState([]); 
