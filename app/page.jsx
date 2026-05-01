@@ -1,12 +1,15 @@
 "use client"
 
 import React, { useState, useEffect } from 'react';
+import { createClient } from '@/utils/supabase/client'
 //import mealsData from './meals.json';
 
 function App() {
  const [searchTerm, setSearchTerm] = useState("");
  const [mealsData, setMealsData] = useState([]);
  const [isLoading, setIsLoading] = useState(true);
+ const [user, setUser] = useState(null)
+ const supabase = createClient()
 
  //Progress Tracker State
  const [plate, setPlate] = useState([]); 
@@ -33,28 +36,99 @@ function App() {
       const res = await fetch("/api/format", { method: "POST"});
       const data = await res.json();
       setMealsData(data);
+      setIsLoading(false);
     }
     fetchMeals();
-    setIsLoading(false);
   }, []);
 
- //filters the list as they type
- const filteredMeals = mealsData && mealsData.length > 0 ? mealsData.filter(meal => {
-  const search = searchTerm.toLowerCase();
-  
-  const matchesName = meal.name.toLowerCase().includes(search);
-  const matchesHall = meal.hall.toLowerCase().includes(search);
-  
-  const matchesMacros = meal.macros && Object.keys(meal.macros).some(key => 
-    key.toLowerCase().includes(search) && meal.macros[key] > 0
-  );
+  useEffect(() => {
+    async function loadUser() {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    }
 
-  const matchesDietary = meal.dietary && meal.dietary.some(tag => 
-    tag.toLowerCase().includes(search)
-  );
+    loadUser();
 
-  return matchesName || matchesHall || matchesMacros || matchesDietary;
-}) : [];
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        const signedIn = !!session?.user
+        setUser(session?.user ?? null);
+
+        if (!signedIn) {
+          setPlate([]);
+          setCalorieGoal(1800);
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, [supabase]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    async function loadSavedTracker() {
+      const res = await fetch('/api/plate');
+      if (!res.ok) return;
+      const data = await res.json();
+      setPlate(data.plate ?? []);
+      setCalorieGoal(data.calorieGoal ?? 1800);
+    }
+
+    loadSavedTracker();
+  }, [user]);
+
+  const saveTracker = async (nextPlate, nextGoal) => {
+    if (!user) return;
+
+    await fetch('/api/plate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ plate: nextPlate, calorieGoal: nextGoal }),
+    });
+  };
+
+  const addMeal = async (meal) => {
+    const nextPlate = [...plate, meal];
+    setPlate(nextPlate);
+    saveTracker(nextPlate, calorieGoal);
+  };
+
+  const updateGoal = async (newGoal) => {
+    setCalorieGoal(newGoal);
+    saveTracker(plate, newGoal);
+  };
+
+  const removePlateItem = async (index) => {
+    const nextPlate = [...plate];
+    nextPlate.splice(index, 1);
+    setPlate(nextPlate);
+    saveTracker(nextPlate, calorieGoal);
+  };
+
+  const clearPlate = async () => {
+    setPlate([]);
+    saveTracker([], calorieGoal);
+  };
+
+  const filteredMeals = mealsData && mealsData.length > 0 ? mealsData.filter(meal => {
+    const search = searchTerm.toLowerCase();
+
+    const matchesName = meal.name.toLowerCase().includes(search);
+    const matchesHall = meal.hall.toLowerCase().includes(search);
+
+    const matchesMacros = meal.macros && Object.keys(meal.macros).some(key => 
+      key.toLowerCase().includes(search) && meal.macros[key] > 0
+    );
+
+    const matchesDietary = meal.dietary && meal.dietary.some(tag => 
+      tag.toLowerCase().includes(search)
+    );
+
+    return matchesName || matchesHall || matchesMacros || matchesDietary;
+  }) : [];
 
  return (
    <div className="container-fluid bg-light min-vh-100 p-3">
@@ -89,7 +163,7 @@ function App() {
                  className="form-control form-control-sm" 
                  style={{ width: '80px' }}
                  value={calorieGoal} 
-                 onChange={(e) => setCalorieGoal(Number(e.target.value))} 
+                 onChange={(e) => updateGoal(Number(e.target.value))} 
                />
              </div>
            </div>
@@ -133,7 +207,7 @@ function App() {
                <hr />
                <div className="d-flex justify-content-between align-items-center mb-2">
                  <small className="text-muted d-block">Currently on your plate:</small>
-                 <button className="btn btn-link text-danger btn-sm p-0" onClick={() => setPlate([])}>Clear Plate</button>
+                 <button className="btn btn-link text-danger btn-sm p-0" onClick={clearPlate}>Clear Plate</button>
                </div>
                
                <div className="d-flex flex-wrap gap-2">
@@ -143,11 +217,7 @@ function App() {
                      <button 
                        className="btn-close ms-2" 
                        style={{ fontSize: '0.5rem' }} 
-                       onClick={() => {
-                         const newPlate = [...plate];
-                         newPlate.splice(index, 1);
-                         setPlate(newPlate);
-                       }}
+                       onClick={() => removePlateItem(index)}
                      ></button>
                    </span>
                  ))}
@@ -197,7 +267,7 @@ function App() {
 
                   <button
                     className="btn btn-danger btn-sm"
-                    onClick={() => setPlate([...plate, meal])}
+                    onClick={() => addMeal(meal)}
                   >
                     + Add
                   </button>

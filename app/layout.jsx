@@ -1,6 +1,7 @@
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./globals.css";
 import { Lexend } from "next/font/google"; //import a clean, modern font
+import Header from "@/components/Header";
 
 const lexend = Lexend({
   subsets: ["latin"],
@@ -16,6 +17,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className={lexend.className}>
+        <Header />
         {children}
       </body>
     </html>
